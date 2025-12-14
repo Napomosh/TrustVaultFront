@@ -1,0 +1,50 @@
+@page "/login"
+@inherits PageBase
+@rendermode InteractiveServer
+
+<div class="container mt-5">
+    <div class="card col-md-6 mx-auto">
+        <div class="card-body">
+            <h3 class="card-title text-center mb-4">Login</h3>
+
+            <EditForm Model="@Model" OnValidSubmit="@DoLogin">
+                <DataAnnotationsValidator />
+                <ValidationSummary class="text-danger" />
+
+                <div class="mb-3">
+                    <label for="login" class="form-label">Login</label>
+                    <InputText id="login" type="text" class="form-control" @bind-Value="Model.Login" />
+                    <ValidationMessage For="@(() => Model.Login)" />
+                </div>
+
+                <div class="mb-3">
+                    <label for="password" class="form-label">Password</label>
+                    <InputText id="password" type="password" class="form-control" @bind-Value="Model.Password" />
+                    <ValidationMessage For="@(() => Model.Password)" />
+                </div>
+
+                @if (!string.IsNullOrEmpty(ErrorMessage))
+                {
+                    <div class="alert alert-danger">@ErrorMessage</div>
+                }
+
+                @if (!string.IsNullOrEmpty(SuccessMessage))
+                {
+                    <div class="alert alert-success">@SuccessMessage</div>
+                }
+
+                <button type="submit" class="btn btn-primary w-100" disabled="@IsLoading">
+                    @if (IsLoading)
+                    {
+                        <span class="spinner-border spinner-border-sm me-2"></span>
+                        <span>Logging in...</span>
+                    }
+                    else
+                    {
+                        <span>Login</span>
+                    }
+                </button>
+            </EditForm>
+        </div>
+    </div>
+</div>

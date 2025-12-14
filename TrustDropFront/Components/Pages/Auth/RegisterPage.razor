@@ -1,0 +1,62 @@
+@page "/register"
+@inherits PageBase
+@rendermode InteractiveServer
+
+<div class="container mt-5">
+    <div class="card col-md-6 mx-auto">
+        <div class="card-body">
+            <h3 class="card-title text-center mb-4">Register</h3>
+
+            <EditForm Model="@Model" OnValidSubmit="@DoRegister">
+                <DataAnnotationsValidator />
+                <ValidationSummary class="text-danger" />
+
+                <div class="mb-3">
+                    <label for="nickname" class="form-label">Nickname</label>
+                    <InputText id="nickname" class="form-control" @bind-Value="Model.Nickname" />
+                    <ValidationMessage For="@(() => Model.Nickname)" />
+                </div>
+
+                <div class="mb-3">
+                    <label for="email" class="form-label">Email</label>
+                    <InputText id="email" type="email" class="form-control" @bind-Value="Model.Email" />
+                    <ValidationMessage For="@(() => Model.Email)" />
+                </div>
+
+                <div class="mb-3">
+                    <label for="password" class="form-label">Password</label>
+                    <InputText id="password" type="password" class="form-control" @bind-Value="Model.Password" />
+                    <ValidationMessage For="@(() => Model.Password)" />
+                </div>
+
+                <div class="mb-3">
+                    <label for="repeatPassword" class="form-label">Repeat Password</label>
+                    <InputText id="repeatPassword" type="password" class="form-control" @bind-Value="Model.RepeatPassword" />
+                    <ValidationMessage For="@(() => Model.RepeatPassword)" />
+                </div>
+
+                @if (!string.IsNullOrEmpty(ErrorMessage))
+                {
+                    <div class="alert alert-danger">@ErrorMessage</div>
+                }
+
+                @if (!string.IsNullOrEmpty(SuccessMessage))
+                {
+                    <div class="alert alert-success">@SuccessMessage</div>
+                }
+
+                <button type="submit" class="btn btn-primary w-100" disabled="@IsLoading">
+                    @if (IsLoading)
+                    {
+                        <span class="spinner-border spinner-border-sm me-2"></span>
+                        <span>Registering...</span>
+                    }
+                    else
+                    {
+                        <span>Register</span>
+                    }
+                </button>
+            </EditForm>
+        </div>
+    </div>
+</div>
