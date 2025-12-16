@@ -1,19 +1,24 @@
+using System.Net.Http.Json;
+using Blazored.LocalStorage;
 using Microsoft.AspNetCore.Components;
-using Microsoft.AspNetCore.Components.Server.ProtectedBrowserStorage;
+using Microsoft.AspNetCore.Components.Authorization;
 using TrustDropFront.Common;
 using TrustDropFront.Models.Auth;
 
-namespace TrustDropFront.Components.Pages.Auth;
+namespace TrustDropFront.Pages.Auth;
 
 public partial class LoginPage : PageBase
 {
     private LoginModel Model { get; set; } = new();
 
-    [Inject] 
-    private ProtectedSessionStorage Storage { get; set; } = null!;
-
-    [Inject] 
-    private AuthStateProvider StateProvider { get; set; } = null!;
+    [Inject]
+    private ILocalStorageService localStorage { get; set; }
+    
+    [Inject]
+    private AuthenticationStateProvider authStateProvider { get; set; }
+    
+    [Inject]
+    private NavigationManager navigationManager { get; set; }
 
     private async Task DoLogin()
     {
@@ -30,8 +35,12 @@ public partial class LoginPage : PageBase
                 SuccessMessage = "Login successful!";
                 Model = new LoginModel();
                 
-                await Storage.SetAsync("authToken", await Network.ParseServerErrorAsync(response));
-                StateProvider.NotifyAuthStateChanged();
+                var jsonResponse = await Network.ParseJsonAsync(response);
+                var jwtToken = jsonResponse.GetProperty("jwtToken").ToString();
+                
+                await localStorage.SetItemAsync("jwtToken", jwtToken);
+                var concreteAuthStateProvider = (AuthStateProvider)authStateProvider;
+                concreteAuthStateProvider.NotifyUserAuthentication(jwtToken);
             }
             else
             {

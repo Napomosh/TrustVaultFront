@@ -1,17 +1,21 @@
+using System.Net.Http.Json;
 using TrustDropFront.Common;
 using TrustDropFront.Models.Auth;
 
-namespace TrustDropFront.Components.Pages.Auth;
+namespace TrustDropFront.Pages.Auth;
 
 public partial class RegisterPage : PageBase
 {
     private RegisterModel Model { get; set; } = new();
+
+    private bool RegistrationSuccessful { get; set; } = false;
 
     private async Task DoRegister()
     {
         ErrorMessage = string.Empty;
         SuccessMessage = string.Empty;
         IsLoading = false;
+        RegistrationSuccessful = false;
 
         try
         {
@@ -21,6 +25,7 @@ public partial class RegisterPage : PageBase
             {
                 SuccessMessage = "Registration successful!";
                 Model = new RegisterModel();
+                RegistrationSuccessful = true;
             }
             else
             {

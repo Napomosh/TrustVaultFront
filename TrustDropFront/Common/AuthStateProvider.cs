@@ -1,40 +1,93 @@
+using System.Net.Http.Headers;
 using System.Security.Claims;
+using System.Text.Json;
+using Blazored.LocalStorage;
 using Microsoft.AspNetCore.Components.Authorization;
-using Microsoft.AspNetCore.Components.Server.ProtectedBrowserStorage;
 
 namespace TrustDropFront.Common;
 
-public class AuthStateProvider(ProtectedSessionStorage storage) : AuthenticationStateProvider
+public class AuthStateProvider(HttpClient httpClient, ILocalStorageService localStorage) : AuthenticationStateProvider
 {
-    private readonly ProtectedSessionStorage storage = storage;
-    
+    private readonly HttpClient httpClient = httpClient;
+    private readonly ILocalStorageService localStorage = localStorage;
+    private readonly AuthenticationState anonymous = new(new ClaimsPrincipal(new ClaimsIdentity()));
+
     public override async Task<AuthenticationState> GetAuthenticationStateAsync()
     {
-        var tokenResult = await storage.GetAsync<string>("authToken");
-
-        if (!tokenResult.Success || string.IsNullOrEmpty(tokenResult.Value))
-            return new AuthenticationState(new ClaimsPrincipal(new ClaimsIdentity()));
+        var token = await localStorage.GetItemAsync<string>("jwtToken");
+        // token = token?.Trim('"');
         
-        return new AuthenticationState(new ClaimsPrincipal(
-                    new ClaimsIdentity(ParseClaimsFromJwt(tokenResult.Value), "jwt")));
-    }
-    
-    public void NotifyAuthStateChanged()
-    {
-        NotifyAuthenticationStateChanged(GetAuthenticationStateAsync());
-    }
-
-    private static IEnumerable<Claim> ParseClaimsFromJwt(string jwt)
-    {
-        var json = System.Text.Encoding.UTF8.GetString
-                                    (Convert.FromBase64String(AddPadding(jwt.Split('.')[1])));
-        var dict = System.Text.Json.JsonSerializer.Deserialize<Dictionary<string, object>>(json);
-
-        return dict?.Select(kvp => new Claim(kvp.Key, kvp.Value.ToString() ?? "")) ?? [];
+        if (string.IsNullOrWhiteSpace(token))
+            return anonymous;
+            
+        httpClient.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("bearer", token);
+        
+        return new AuthenticationState(
+            new ClaimsPrincipal(
+                new ClaimsIdentity(ParseClaimsFromJwt(token), "jwt")));
     }
 
-    private static string AddPadding(string base64)
+    public void NotifyUserAuthentication(string token)
     {
-        return base64.PadRight(base64.Length + (4 - base64.Length % 4) % 4, '=');
+        var authenticatedUser = new ClaimsPrincipal(
+            new ClaimsIdentity(ParseClaimsFromJwt(token), "jwt"));
+        
+        var authState = Task.FromResult(new AuthenticationState(authenticatedUser));
+        
+        NotifyAuthenticationStateChanged(authState);
+    }
+
+    public void NotifyUserLogout()
+    {
+        var authState = Task.FromResult(anonymous);
+        NotifyAuthenticationStateChanged(authState);
+    }
+
+    private IEnumerable<Claim> ParseClaimsFromJwt(string jwt)
+    {
+        var claims = new List<Claim>();
+        var payload = jwt.Split('.')[1];
+        var jsonBytes = ParseBase64WithoutPadding(payload);
+        var keyValuePairs = JsonSerializer.Deserialize<Dictionary<string, object>>(jsonBytes);
+
+        if (keyValuePairs == null) 
+            return claims;
+        keyValuePairs.TryGetValue(ClaimTypes.Role, out var roles);
+
+        if (roles != null)
+        {
+            if (roles is JsonElement { ValueKind: JsonValueKind.Array } jsonRoles)
+            {
+                var parsedRoles = jsonRoles.Deserialize<string[]>();
+                    
+                if (parsedRoles != null)
+                    claims.AddRange(parsedRoles.Select
+                        (parsedRole => new Claim(ClaimTypes.Role, parsedRole)));
+            }
+            else if (roles is JsonElement { ValueKind: JsonValueKind.String })
+            {
+                claims.Add(new Claim(ClaimTypes.Role, roles.ToString() ?? string.Empty));
+            }
+
+            keyValuePairs.Remove(ClaimTypes.Role);
+        }
+
+        claims.AddRange(keyValuePairs.Select(kvp => new Claim(kvp.Key, kvp.Value.ToString() ?? string.Empty)));
+
+        return claims;
+    }
+
+    private byte[] ParseBase64WithoutPadding(string base64)
+    {
+        switch (base64.Length % 4)
+        {
+            case 2: 
+                base64 += "=="; 
+                break;
+            case 3: 
+                base64 += "=";
+                break;
+        }
+        return Convert.FromBase64String(base64);
     }
 }

@@ -18,6 +18,20 @@ public static class Network
             return string.Empty;
         }
     }
+
+    public static async Task<JsonElement> ParseJsonAsync(HttpResponseMessage source)
+    {
+        var content = await source.Content.ReadAsStringAsync();
+        
+        try
+        {
+            return JsonDocument.Parse(content).RootElement.GetProperty("value");
+        }
+        catch
+        {
+            return new JsonElement();
+        }
+    }
     
     public static string DefaultErrorMessage(string serverMessage) => $"An error occurred on the server: {serverMessage}";
 }
