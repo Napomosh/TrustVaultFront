@@ -12,13 +12,13 @@ public partial class LoginPage : PageBase
     private LoginModel Model { get; set; } = new();
 
     [Inject]
-    private ILocalStorageService localStorage { get; set; }
-    
+    private ILocalStorageService LocalStorage { get; set; } = null!;
+
     [Inject]
-    private AuthenticationStateProvider authStateProvider { get; set; }
-    
+    private AuthenticationStateProvider AuthStateProvider { get; set; } = null!;
+
     [Inject]
-    private NavigationManager navigationManager { get; set; }
+    private NavigationManager NavigationManager { get; set; } = null!;
 
     private async Task DoLogin()
     {
@@ -38,8 +38,8 @@ public partial class LoginPage : PageBase
                 var jsonResponse = await Network.ParseJsonAsync(response);
                 var jwtToken = jsonResponse.GetProperty("jwtToken").ToString();
                 
-                await localStorage.SetItemAsync("jwtToken", jwtToken);
-                var concreteAuthStateProvider = (AuthStateProvider)authStateProvider;
+                await LocalStorage.SetItemAsync("jwtToken", jwtToken);
+                var concreteAuthStateProvider = (AuthStateProvider)AuthStateProvider;
                 concreteAuthStateProvider.NotifyUserAuthentication(jwtToken);
             }
             else
