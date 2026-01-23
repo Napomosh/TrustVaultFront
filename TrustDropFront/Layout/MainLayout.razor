@@ -1,5 +1,4 @@
 ﻿@inherits LayoutComponentBase
-@inject NavigationManager Navigation
 
 <div class="page">
     <div class="sidebar">
@@ -10,7 +9,7 @@
         <div class="top-row px-4">
             <AuthorizeView>
                 <Authorized>
-                    <a href="#" @onclick="Logout">Logout</a>
+                    <a href="/profile">Profile</a>
                 </Authorized>
                 <NotAuthorized>
                     <a href="/login">Log In</a>
@@ -24,13 +23,6 @@
         </article>
     </main>
 </div>
-
-@code {
-    private async Task Logout()
-    {
-        Navigation.NavigateTo("/", forceLoad: true);
-    }
-}
 
 <div id="blazor-error-ui" data-nosnippet>
     An unhandled error has occurred.
