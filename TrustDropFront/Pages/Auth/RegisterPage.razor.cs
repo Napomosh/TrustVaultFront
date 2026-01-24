@@ -19,7 +19,7 @@ public partial class RegisterPage : PageBase
 
         try
         {
-            var response = await httpClient.PostAsJsonAsync(RequestConstants.REQUEST_REGISTER, Model);
+            var response = await ApiHttpClient.PostAsJsonAsync(RequestConstants.REQUEST_AUTH_REGISTER, Model);
 
             if (response.IsSuccessStatusCode)
             {

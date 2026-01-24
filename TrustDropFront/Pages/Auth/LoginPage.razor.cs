@@ -1,5 +1,4 @@
 using System.Net.Http.Json;
-using Blazored.LocalStorage;
 using Microsoft.AspNetCore.Components;
 using Microsoft.AspNetCore.Components.Authorization;
 using TrustDropFront.Common;
@@ -12,10 +11,7 @@ public partial class LoginPage : PageBase
     private LoginModel Model { get; set; } = new();
 
     [Inject]
-    private ILocalStorageService LocalStorage { get; set; } = null!;
-
-    [Inject]
-    private AuthenticationStateProvider AuthStateProvider { get; set; } = null!;
+    private AuthenticationStateProvider AuthStateProviderProperty { get; set; } = null!;
 
     [Inject]
     private NavigationManager NavigationManager { get; set; } = null!;
@@ -28,19 +24,15 @@ public partial class LoginPage : PageBase
 
         try
         {
-            var response = await httpClient.PostAsJsonAsync(RequestConstants.REQUEST_LOGIN, Model);
+            var response = await ApiHttpClient.PostAsJsonAsync(RequestConstants.REQUEST_AUTH_LOGIN, Model);
 
             if (response.IsSuccessStatusCode)
             {
                 SuccessMessage = "Login successful!";
                 Model = new LoginModel();
                 
-                var jsonResponse = await Network.ParseJsonAsync(response);
-                var jwtToken = jsonResponse.GetProperty("jwtToken").ToString();
-                
-                await LocalStorage.SetItemAsync("jwtToken", jwtToken);
-                var concreteAuthStateProvider = (AuthStateProvider)AuthStateProvider;
-                concreteAuthStateProvider.NotifyUserAuthentication(jwtToken);
+                if (AuthStateProviderProperty is AuthStateProvider concreteAuthStateProvider)
+                    await concreteAuthStateProvider.NotifyUserAuthentication();
             }
             else
             {
