@@ -1,4 +1,3 @@
-using Blazored.LocalStorage;
 using Microsoft.AspNetCore.Components;
 using Microsoft.AspNetCore.Components.Authorization;
 using TrustDropFront.Common;
@@ -8,18 +7,20 @@ namespace TrustDropFront.Pages.UserProfile;
 public partial class UserProfilePage : PageBase
 {
     [Inject] 
-    private ILocalStorageService LocalStorage { get; set; } = null!;
-
-    [Inject] 
     private AuthenticationStateProvider AuthStateProvider { get; set; } = null!;
 
     [Inject]
     private NavigationManager NavigationManager { get; set; } = null!;
+    
     private async Task Logout()
     {
-        await LocalStorage.RemoveItemAsync("jwtToken");
-        var concreteAuthStateProvider = (AuthStateProvider)AuthStateProvider;
-        concreteAuthStateProvider.NotifyUserLogout();
-        NavigationManager.NavigateTo("/");
+        var response = await ApiHttpClient.GetAsync(RequestConstants.REQUEST_AUTH_LOGOUT);
+        
+        if (response.IsSuccessStatusCode)
+        {
+            if (AuthStateProvider is AuthStateProvider concreteAuthStateProvider)
+                concreteAuthStateProvider.NotifyUserLogout();
+            NavigationManager.NavigateTo("/login");
+        }
     }
 }
