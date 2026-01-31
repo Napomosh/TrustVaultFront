@@ -16,6 +16,9 @@ public partial class LoginPage : PageBase
     [Inject]
     private NavigationManager NavigationManager { get; set; } = null!;
 
+    [Inject] 
+    private ApplicationSettings ApplicationSettings { get; set; } = null!;
+
     private async Task DoLogin()
     {
         ErrorMessage = string.Empty;
@@ -31,8 +34,12 @@ public partial class LoginPage : PageBase
                 SuccessMessage = "Login successful!";
                 Model = new LoginModel();
                 
+                var jsonResponse = await Network.ParseJsonAsync(response);
+
+                ApplicationSettings.JwtToken = jsonResponse.GetProperty("token").ToString();
+                
                 if (AuthStateProviderProperty is AuthStateProvider concreteAuthStateProvider)
-                    await concreteAuthStateProvider.NotifyUserAuthentication();
+                    concreteAuthStateProvider.NotifyUserAuthentication(ApplicationSettings.JwtToken);
             }
             else
             {
