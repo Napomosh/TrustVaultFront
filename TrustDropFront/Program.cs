@@ -10,12 +10,10 @@ builder.RootComponents.Add<App>("#app");
 builder.RootComponents.Add<HeadOutlet>("head::after");
 
 builder.Services.AddTransient<RequestHandler>();
-builder.Services.AddHttpClient("TrustDropAPI", client => 
-    {
-        client.BaseAddress = new Uri("http://localhost:5101/api/");
-    })
+builder.Services
+    .AddHttpClient("TrustDropAPI", client => { client.BaseAddress = new Uri("http://localhost:5101/api/"); })
     .AddHttpMessageHandler<RequestHandler>();
-builder.Services.AddScoped(sp => 
+builder.Services.AddScoped(sp =>
     sp.GetRequiredService<IHttpClientFactory>().CreateClient("TrustDropAPI"));
 
 builder.Services.AddScoped<AuthenticationStateProvider, AuthStateProvider>();
