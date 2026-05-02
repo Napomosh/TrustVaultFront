@@ -6,7 +6,7 @@ namespace TrustDropFront.Pages.Auth;
 
 public partial class RegisterPage : PageBase
 {
-    private RegisterModel Model { get; set; } = new();
+    private RegisterModel _model = new();
 
     private bool RegistrationSuccessful { get; set; } = false;
 
@@ -19,12 +19,12 @@ public partial class RegisterPage : PageBase
 
         try
         {
-            var response = await ApiHttpClient.PostAsJsonAsync(RequestConstants.REQUEST_AUTH_REGISTER, Model);
+            var response = await ApiHttpClient.PostAsJsonAsync(RequestConstants.REQUEST_AUTH_REGISTER, _model);
 
             if (response.IsSuccessStatusCode)
             {
                 SuccessMessage = "Registration successful!";
-                Model = new RegisterModel();
+                _model = new RegisterModel();
                 RegistrationSuccessful = true;
             }
             else

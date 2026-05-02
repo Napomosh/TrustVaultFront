@@ -6,17 +6,15 @@ namespace TrustDropFront.Common;
 
 public class AuthStateProvider(ApplicationSettings settings) : AuthenticationStateProvider
 {
-    private readonly ApplicationSettings settings = settings;
-    private readonly ClaimsPrincipal anonymous = new(new ClaimsIdentity());
+    private readonly ApplicationSettings _settings = settings;
+    private readonly ClaimsPrincipal _anonymous = new(new ClaimsIdentity());
 
     public override async Task<AuthenticationState> GetAuthenticationStateAsync()
     {
-        var token = settings.JwtToken;
+        var token = _settings.JwtToken;
 
         if (string.IsNullOrWhiteSpace(token))
-        {
-            return new AuthenticationState(anonymous);
-        }
+            return new AuthenticationState(_anonymous);
 
         var claims = ParseClaimsFromJwt(token);
         var identity = new ClaimsIdentity(claims, "jwt");
@@ -37,7 +35,7 @@ public class AuthStateProvider(ApplicationSettings settings) : AuthenticationSta
 
     public void NotifyUserLogout()
     {
-        var authState = Task.FromResult(new AuthenticationState(anonymous));
+        var authState = Task.FromResult(new AuthenticationState(_anonymous));
         NotifyAuthenticationStateChanged(authState);
     }
 
@@ -47,7 +45,7 @@ public class AuthStateProvider(ApplicationSettings settings) : AuthenticationSta
         var jsonBytes = ParseBase64WithoutPadding(payload);
         var keyValuePairs = JsonSerializer.Deserialize<Dictionary<string, object>>(jsonBytes);
 
-        return keyValuePairs.Select(kvp => new Claim(kvp.Key, kvp.Value.ToString() ?? ""));
+        return keyValuePairs?.Select(kvp => new Claim(kvp.Key, kvp.Value.ToString() ?? "")) ?? [];
     }
 
     private byte[] ParseBase64WithoutPadding(string base64)
