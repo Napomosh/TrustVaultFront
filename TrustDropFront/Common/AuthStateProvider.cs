@@ -1,64 +1,60 @@
-using System.Net.Http.Headers;
-using System.Net.Http.Json;
 using System.Security.Claims;
 using System.Text.Json;
-using Blazored.LocalStorage;
-using Blazored.LocalStorage;
 using Microsoft.AspNetCore.Components.Authorization;
-using TrustDropFront.Models.Auth;
 
 namespace TrustDropFront.Common;
 
-public class AuthStateProvider(HttpClient httpClient) : AuthenticationStateProvider
+public class AuthStateProvider(ApplicationSettings settings) : AuthenticationStateProvider
 {
-    private readonly HttpClient httpClient = httpClient;
+    private readonly ApplicationSettings _settings = settings;
+    private readonly ClaimsPrincipal _anonymous = new(new ClaimsIdentity());
 
     public override async Task<AuthenticationState> GetAuthenticationStateAsync()
     {
-        try
-        {
-            var response = await httpClient.GetAsync(RequestConstants.REQUEST_AUTH_ME);
+        var token = _settings.JwtToken;
 
-            if (!response.IsSuccessStatusCode)
-                return AnonymousState();
+        if (string.IsNullOrWhiteSpace(token))
+            return new AuthenticationState(_anonymous);
 
-            var userInfo = await response.Content.ReadFromJsonAsync<UserAuthInfo>();
+        var claims = ParseClaimsFromJwt(token);
+        var identity = new ClaimsIdentity(claims, "jwt");
+        var user = new ClaimsPrincipal(identity);
 
-            if (userInfo == null /*|| !userInfo.IsAuthenticated*/)
-                return AnonymousState();
-
-            var claims = new List<Claim>
-            {
-                new (ClaimTypes.NameIdentifier, userInfo.Id.ToString()),
-                new (ClaimTypes.Name, userInfo.Name),
-                new (ClaimTypes.Email, userInfo.Email)
-            };
-
-            // if (userInfo.CurrentTenantId.HasValue)
-            // {
-            //     claims.Add(new Claim("TenantId", userInfo.CurrentTenantId.Value.ToString()));
-            // }
-
-            var identity = new ClaimsIdentity(claims, "ServerAuth");
-            return new AuthenticationState(new ClaimsPrincipal(identity));
-        }
-        catch (Exception)
-        {
-            return AnonymousState();
-        }
+        return new AuthenticationState(user);
     }
 
-    public async Task NotifyUserAuthentication()
+    public void NotifyUserAuthentication(string token)
     {
-        var authState = await GetAuthenticationStateAsync();
-        NotifyAuthenticationStateChanged(Task.FromResult(authState));
+        var claims = ParseClaimsFromJwt(token);
+        var identity = new ClaimsIdentity(claims, "jwt");
+        var user = new ClaimsPrincipal(identity);
+        var authState = Task.FromResult(new AuthenticationState(user));
+
+        NotifyAuthenticationStateChanged(authState);
     }
 
     public void NotifyUserLogout()
     {
-        var authState = Task.FromResult(new AuthenticationState(new ClaimsPrincipal(new ClaimsIdentity())));
+        var authState = Task.FromResult(new AuthenticationState(_anonymous));
         NotifyAuthenticationStateChanged(authState);
     }
-    private AuthenticationState AnonymousState() 
-        => new (new ClaimsPrincipal(new ClaimsIdentity()));
+
+    private IEnumerable<Claim> ParseClaimsFromJwt(string jwt)
+    {
+        var payload = jwt.Split('.')[1];
+        var jsonBytes = ParseBase64WithoutPadding(payload);
+        var keyValuePairs = JsonSerializer.Deserialize<Dictionary<string, object>>(jsonBytes);
+
+        return keyValuePairs?.Select(kvp => new Claim(kvp.Key, kvp.Value.ToString() ?? "")) ?? [];
+    }
+
+    private byte[] ParseBase64WithoutPadding(string base64)
+    {
+        switch (base64.Length % 4)
+        {
+            case 2: base64 += "=="; break;
+            case 3: base64 += "="; break;
+        }
+        return Convert.FromBase64String(base64);
+    }
 }

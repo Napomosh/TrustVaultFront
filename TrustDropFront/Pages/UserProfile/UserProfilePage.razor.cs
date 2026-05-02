@@ -20,6 +20,7 @@ public partial class UserProfilePage : PageBase
         {
             if (AuthStateProvider is AuthStateProvider concreteAuthStateProvider)
                 concreteAuthStateProvider.NotifyUserLogout();
+            
             NavigationManager.NavigateTo("/login");
         }
     }
